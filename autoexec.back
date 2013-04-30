@@ -1,0 +1,51 @@
+#!/bin/bash
+# Rsyncs specific directories on megasphere and colossus to vault
+# $Header: /vol/src/autoexec.back/RCS/autoexec.back,v 1.10 2012/06/15 06:43:06 walterp Exp $
+
+logfile=/var/log/autoexec.back.log
+program=`basename $0`
+hostname=`hostname | tr A-Z a-z`
+bkmnt="/vol/backups/$hostname"
+
+rsyncargs="-a"
+#rsyncargs="-rlptD"
+
+date "+%b %d %H:%M:%S $program Automated Backup Initiated" >> $logfile
+
+#error check to verify that NAS is mounted
+
+/bin/ls $bkmnt > /dev/null 2>/dev/null
+if [ $? -ne 0 ]; then
+  echo "ERROR: NAS not mounted" >> $logfile
+  echo "bkmnt=$bkmnt" >> $logfile
+  exit 2
+fi
+
+#flag to check hostname is handled by script
+
+validhost=false
+
+if [ $hostname == colossus ]; then
+   validhost=true
+   rsync $rsyncargs /etc/bind $bkmnt/bind/etc
+   rsync $rsyncargs /var/cache/bind $bkmnt/bind/cache
+   rsync $rsyncargs /var/www $bkmnt
+   rsync $rsyncargs /etc/apache2 $bkmnt
+   mysqldump -u root -ptarstarkas88 --all-databases > $bkmnt/mysql/db-backup.sql
+fi 
+
+if [ $hostname == megasphere ]; then
+   validhost=true
+   rsync $rsyncargs /home/walterp $bkmnt/home
+   rsync $rsyncargs /vol/src $bkmnt
+fi 
+
+#error check to verify that script was run against a known host
+
+if [ $validhost == false ]; then
+   date "+%b %d %H:%M:%S $program error: invalid host $hostname" >> $logfile
+   exit 3
+fi
+
+date "+%b %d %H:%M:%S $program Rsync successfully completed" >> $logfile
+exit 0
