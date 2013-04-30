@@ -1,0 +1,36 @@
+#!/bin/bash 
+#
+# Author:
+#  Walter Phippeny      
+# Date:
+#  09 22 2011
+# Description:
+# This script handles autoexec.back and extback to insure they don't step on each other.
+#  
+# $Header: /vol/src/masterbk/RCS/masterbk,v 1.1 2011/09/23 05:49:10 walterp Exp $
+#
+
+mailaddrs="habeascorpus@digitalhecatomb.net"
+program=`basename $0`
+# Excute autoexec.back 
+/usr/local/bin/autoexec.back
+
+if [ $? -ne 0 ]; then
+   cat <<EOD | mailx -s "$program - autoexec.back failed" $mailaddrs
+   Error: Autoexec.back exited with non-zero. Check the logs. 
+EOD
+   exit 1
+fi
+
+dow=`date "+%a"`
+# insure extback only runs on Friday
+if [ "$dow" == "Fri" ]; then
+   /usr/local/bin/extback
+   if [ $? -ne 0 ]; then 
+      cat <<EOD | mailx -s "$program - extback failed" $mailaddrs
+      Error: extback exited with non-zero. Check the logs.
+EOD
+      exit 2 
+   fi
+fi
+exit 0
